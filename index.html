@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Louis's Baby Clock</title>
+    <style>
+        /* CSS 样式 */
+        :root {
+            --primary-color: #ff69b4; 
+            --accent-color: #87ceeb; 
+            --bg-color: #f0f8ff; 
+            --iphone-max-width: 430px; 
+            --bright-purple: #ee82ee; 
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: #333;
+        }
+
+        /* 移动端适配容器 */
+        .container {
+            max-width: var(--iphone-max-width);
+            margin: 0 auto;
+            min-height: 100vh;
+            background-color: white; 
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 双语按钮通用样式 */
+        .bilingual-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.3; 
+            padding: 15px 20px; 
+            cursor: pointer;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s;
+            border: none;
+            text-align: center;
+        }
+        .bilingual-btn .en { font-size: 1.2em; font-weight: bold; } 
+        .bilingual-btn .zh { font-size: 1.1em; } 
+
+        /* --- 导航栏样式 (已修改: 移除 position: fixed) --- */
+        .navbar {
+            padding: 0; 
+            background-color: transparent; 
+            width: 100%;
+            max-width: var(--iphone-max-width);
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column; 
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 导航标题区域：名称在图片上方 */
+        .nav-title-area {
+            position: relative;
+            height: 108px; 
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white; 
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 导航图片区域：图片在名称下方 */
+        .nav-content {
+            width: 100%;
+            height: 225px; 
+            background-size: cover;
+            background-position: center;
+            transition: background-image 0.5s;
+            /* <<<--- 关键修改 1: 设置默认导航图片路径为 GitHub Raw URL --->>> */
+            background-image: url('https://raw.githubusercontent.com/aaanationalgroup-dev/clock1/main/79463f4f1ee8270c2d7652a2444c79f1.gif');
+        }
+        
+        /* 导航按钮区域 */
+        .nav-buttons {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            padding: 5px;
+            display: flex;
+            gap: 5px;
+            z-index: 10;
+        }
+
+        .nav-btn {
+            background-color: var(--primary-color);
+            color: white;
+            flex-grow: 1; 
+            min-width: 80px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            opacity: 0.9;
+            padding: 10px; 
+            font-size: 0.9em;
+        }
+
+        /* --- 导航栏动态文字样式 (保持不变) --- */
+        #nav-title {
+            font-size: 2.5em; 
+            font-weight: 900; 
+            color: var(--bright-purple); 
+            text-shadow: 
+                3px 3px 0 #330033, 
+                6px 6px 0 #000000, 
+                0 0 5px #fff,
+                0 0 15px var(--bright-purple), 
+                0 0 30px var(--bright-purple),
+                0 0 40px #ff0; 
+                
+            animation: wave 4s infinite ease-in-out alternate, glow 1.5s infinite alternate;
+            letter-spacing: 3px;
+            opacity: 0; 
+            transition: opacity 0.5s;
+            position: absolute;
+            width: 90%;
+            text-align: center;
+        }
+
+        /* --- 主内容区域样式 (已修改: 移除 padding-top) --- */
+        .content {
+            text-align: center;
+            padding: 20px 15px 50px 15px; 
+        }
+
+        /* Louis's Baby Clock 标题样式 (保持不变) */
+        #main-title {
+            font-size: 3em; 
+            font-weight: 900;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+            text-shadow: 
+                4px 4px 0 #fff,  
+                6px 6px 0 #ccc,  
+                8px 8px 0 #999,  
+                10px 10px 15px rgba(0, 0, 0, 0.4); 
+            letter-spacing: 3px;
+        }
+        
+        /* --- 其他样式 (保持不变) --- */
+        .alarm-controls { display: flex; flex-direction: column; gap: 15px; align-items: center; margin-top: 25px; }
+        .alarm-btn-full { width: 80%; min-height: 80px; font-size: 1.1em; border-radius: 40px; box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15); }
+        #play-btn { background-color: #28a745; color: white; } 
+        #snooze-btn { background-color: #ffc107; color: #333; } 
+        #stop-btn { background-color: #dc3545; color: white; } 
+        .alarm-section, .memo-section { padding: 20px 15px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05); margin: 20px 0; background-color: #f7f7f7; }
+        .footer-social-area { padding: 20px 15px; background-color: #f7f7f7; border-top: 1px solid #eee; }
+        .social-row { display: flex; justify-content: space-around; align-items: center; margin-bottom: 20px; }
+        .social-icon-btn { background: none; border: none; cursor: pointer; padding: 10px; transition: transform 0.2s; }
+        .social-icon-btn:hover { transform: scale(1.1); }
+        .social-icon { width: 40px; height: 40px; filter: grayscale(20%); }
+        .auth-buttons { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
+        .auth-btn { flex-grow: 1; padding: 15px 10px; border-radius: 10px; min-height: 60px; font-size: 1.0em; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+        #register-btn { background-color: #007bff; color: white; }
+        #login-btn { background-color: #28a745; color: white; }
+        #logout-btn { background-color: #dc3545; color: white; }
+        .interact-buttons { display: flex; justify-content: space-around; margin-bottom: 20px; }
+        .interact-btn { background-color: #fff; color: #333; border: 1px solid #ccc; padding: 10px 15px; border-radius: 25px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: background-color 0.2s; }
+        #like-btn:hover { background-color: #ffe0f0; }
+        #friends-btn:hover { background-color: #e0f7fa; }
+        #like-info { font-size: 0.9em; color: #888; margin-bottom: 15px; text-align: left; padding: 0 15px; }
+        .like-user { margin-left: 5px; font-weight: bold; color: var(--bright-purple); }
+        #comment-section { padding: 15px; background-color: white; border-radius: 10px; box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05); margin-top: 15px; }
+        .comment-item { border-bottom: 1px dashed #eee; padding: 8px 0; text-align: left; }
+        .comment-user { font-weight: bold; color: #007bff; }
+        .comment-meta { font-size: 0.75em; color: #999; }
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 350px; border-radius: 10px; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
+        .close:hover, .close:focus { color: black; text-decoration: none; cursor: pointer; }
+        .friend-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; transition: background-color 0.2s; }
+        .friend-item:hover { background-color: #f0f0f0; }
+        
+        /* --- 用户指定修改: 按钮颜色 --- */
+        #customize-btn { 
+            background-color: #FFD700; /* 黄金色 */
+            color: #007FFF; /* 亮蓝色 */
+        }
+        #customize-btn .en, #customize-btn .zh {
+            color: #007FFF; /* 确保文字颜色为亮蓝色 */
+        }
+        
+        #download-btn {
+            background-color: #28a745; /* 绿色 */
+            color: #495057; /* 深灰色 */
+        }
+        #download-btn .en, #download-btn .zh {
+            color: #495057; /* 确保文字颜色为深灰色 */
+        }
+
+        /* <<<--- 关键修改 3: 下载和定制按钮的居中容器 --->>> */
+        .download-row {
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            align-items: center; /* **关键：水平居中** */
+            margin-top: 25px;
+            margin-bottom: 25px;
+        }
+
+        /* 调整按钮宽度以更好地居中显示 */
+        #customize-btn, #download-btn {
+            width: 80%; 
+            max-width: 300px; /* 限制最大宽度 */
+        }
+        /* --- 用户指定修改结束 --- */
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="navbar">
+            <div class="nav-title-area">
+                <h1 id="nav-title"></h1>
+            </div>
+            <div class="nav-content" id="nav-content"></div>
+
+            <div class="nav-buttons">
+                <input type="file" id="image-upload-input" accept="image/*" style="display: none;"> 
+                <button class="nav-btn bilingual-btn" onclick="document.getElementById('image-upload-input').click()">
+                    <span class="en">Upload Image</span>
+                    <span class="zh">上传图片</span>
+                </button>
+                <button class="nav-btn bilingual-btn" onclick="promptForNavTitle()">
+                    <span class="en">Set Nav Title</span>
+                    <span class="zh">输入导航名称</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="content">
+            <h1 id="main-title">Louis's Baby Clock</h1>
+            
+            <div class="alarm-section">
+                <h2>⏰ Alarm Control | 闹钟控制</h2>
+                <p class="alarm-status" id="alarm-status">No alarm set | 未设置闹钟</p>
+                
+                <button id="set-alarm-btn" class="bilingual-btn" onclick="promptForAlarm()">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTEyIDJjLTQuNDEgMC04IDMuNTktOCA4czMuNTkgOCA4IDh2MGMwIC41NS0uNDUgMS0xIDFzLTEtLjQ1LTEtMVYxOGMwLS41NS0uNDUtMS0xLTFzLTEgLjQ1LTEgMXYxYzAgLjU1LS40NSAxLTEgMXMtMS0uNDUtMS0xVjE3YzAtLjU1LS40NS0xLTEtMXMtMSAuNDUtMSAxdi0xYzAtLjU1LS40NS0xLTEtMXMtMSAuNDUtMSAxVjEyYzAtLjU1LS40NS0xLTEtMVYxMWMwLTEuMTkuMzctMi4zLjktMy4yMnEzLjUtNS42OCA4LjYxLTYuNzZWNGgtMlYySDExVjFoMnYxSDIzdjJoLTF2LTEuNzZjLjA5LjAyLjE4LjA0LjI2LjA3IDEuOTQuNjkgMy43NyAxLjg5IDUuMTggMy4zN3MxLjQgMy4zNiAxLjQgNS40OXYxLjQ0Yy0uNTUtLjExLTEtLjYxLTEtMS4xNnYuMDZjMC01LjIxLTQuMjQtOS40NS05LjQ1LTkuNDV6TTE1IDE1djItNGMtLjU1IDAtMSAuNDUtMSAxdi4wNiBjLS41NS4yOC0uOTQuNjktLjktMS4xNnYxLjQ0YzQuNDEgMCA4LzMuNTkgOC04djYuMDZjLS4wNC0uMDktLjA4LS4xNy0uMTItLjI1VjEzLjc2YzAgLjU1LS40NSAxLTEgMXMtMS0uNDUtMS0xVjEzYzAtLjU1LS40NS0xLTEtMXMtMSAuNDUtMSAxVjEzem0tMy01YzEuNjYgMCAzLTEuMzQgMy0zcy0xLjM0LTMtMy0zLTMtMS4zNC0zLTMgM2MtMS42NiAwIDEtMyAzIDMgM3MxLjM0IDMgMyAzeiIvPjwvc3ZnPg==" width="24" height="24" style="vertical-align: middle; margin-right: 8px;">
+                    <span class="en">Set Time</span>
+                    <span class="zh">(Set Time / Fijar Hora / समय निर्धारित करें / تحديد الوقت / Zeit einstellen / 時間を設定 / Régler l'heure / קבע זמן / Saati Ayarla / Tetapkan Masa)</span>
+                </button>
+
+                `** -->
+                <audio id="alarm-audio" loop src="https://raw.githubusercontent.com/aaanationalgroup-dev/clock1/main/proud-of-america-and-god.mp3"></audio>
+                
+                <div class="alarm-controls">
+                    <button class="alarm-btn bilingual-btn alarm-btn-full" id="play-btn" onclick="playAlarm()">
+                        <span class="en">Play</span>
+                        <span class="zh">播放</span>
+                    </button>
+                    <button class="alarm-btn bilingual-btn alarm-btn-full" id="snooze-btn" onclick="snoozeAlarm()">
+                        <span class="en">Snooze 5 min</span>
+                        <span class="zh">休息一会</span>
+                    </button>
+                    <button class="alarm-btn bilingual-btn alarm-btn-full" id="stop-btn" onclick="stopAlarm()">
+                        <span class="en">Stop</span>
+                        <span class="zh">停止</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="memo-section">
+                <div class="memo-header">
+                    <h2>📝 Memo | 备忘录</h2>
+                    <button class="nav-btn bilingual-btn" onclick="toggleMemoList()">
+                        <span class="en">Show/Hide All</span>
+                        <span class="zh">展示/隐藏全部</span>
+                    </button>
+                </div>
+                <div id="memo-list">
+                    </div>
+                <div style="margin-top: 20px; display: flex;">
+                    <input type="text" id="new-memo-text" placeholder="Enter new memo item... | 输入新的备忘录项目..." style="flex-grow: 1; padding: 10px; border-radius: 10px; border: 1px solid #ccc;">
+                    <button class="nav-btn bilingual-btn" onclick="addMemo()" style="margin-left: 5px;">
+                        <span class="en">Input</span>
+                        <span class="zh">输入</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="footer-section">
+                <div id="accumulated-quotes">
+                    </div>
+                
+                <h3>🌟 Daily Motivation | 每日激励</h3>
+                
+                <div class="quote-container">
+                    <input type="text" id="quote-input" placeholder="Enter your motivational quote... | 输入激励自己的名人名言..." onchange="addUserQuote(this.value)">
+                    <p style="font-size: 0.8em; color: #666; margin-top: 10px;">or select from the warehouse: | 或从仓库中选择：</p>
+                    
+                    <select id="quote-select" onchange="addSelectedQuote(this.value)">
+                        <option value="">-- Select a famous quote (300 total) -- | -- 选择一条名人名言 (共300条) --</option>
+                        </select>
+                </div>
+
+                <div class="download-row">
+                    <button id="customize-btn" class="bilingual-btn" onclick="window.location.href='http://www.aaa.ltda'">
+                        <span class="en">Customize My Song & Alarm</span>
+                        <span class="zh">定制我的歌曲和闹钟</span>
+                    </button>
+                    <button id="download-btn" class="bilingual-btn" onclick="downloadApp()">
+                        <span class="en">Download to Home Screen</span>
+                        <span class="zh">下载到手机桌面</span>
+                    </button>
+                </div>
+                <p style="margin-top: 15px; font-weight: bold;">Louis's Baby Clock</p>
+            </div>
+        </div>
+
+        <div class="footer-social-area">
+            
+            <div class="social-row">
+                <button class="social-icon-btn" onclick="shareToSocial('WeChat', 'This is my Louis\'s Baby Clock!')">
+                    <img class="social-icon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MCA1MCI+PHBhdGggZmlsbD0iIzBhYmI0ZCIgZD0iTTEyLjUgNS41QzcuMjY5IDUuNSAzIDkuNjc1IDMgMTVDMyAyMC4zMjUgNy4yNjkgMjQuNSA1LjUgMjcuODg4TDIuNDczIDMwLjU3OGExIDEgMCAwIDAgLjI3NSAxLjY1Mmw0LjY3NCAxLjUzMmMxLjI0OS40MTcgMi42MjUgLjY0MyA0LjAxLjYzNEMxOC43MzEgMzQuNSA1NS41IDIxLjgwNiA1MCAxNS41QzUwIDkuNjc1IDQ1LjczMSA1LjUgNDAuNSA1LjVMNDAuNSA1LjVaIi8+PHBhdGdpbWdyIHdpZHRoPSIyNCINCiAgICAgICAgICAgICAgICAgICAgIGhlaWdodD0iMjQiDQogICAgICAgICAgICAgICAgICAgICBmaWxsPSJyZWRiYWcgcmFkaWFsZ3JhZGllbnQoY2VudGVyLCBjZW50ZXIpOiByZ2IoMCwgMjAyLCA2NCkgMCUsIHJnYmEoMCwgMjAyLCA2NCwgMCkgMTAwJSk7Ij4KPC9zdmc+" alt="WeChat">
+                </button>
+                <button class="social-icon-btn" onclick="shareToSocial('Weibo', 'Louis\'s Baby Clock, my favorite!')">
+                    <img class="social-icon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjIgMTIyIj48cGF0aCBmaWxsPSIjRjcwNjA5IiBkPSJNOTQuNjMgMTguMDdDMTA2LjQzIDIwLjkgMTE0IDI4LjUgMTE0IDQwLjMyVjEwMC40Yy0xLjQxIDUuMy01LjMyIDkuNi0xMi4wNSA5LjZjLTE2LjIzIDAtMzIuNDcgMC00OC43IDAtMi4wNyAwLTMuNjYtLjU4LTQuNTgtMi40Ni0uNTEtLjk3LS43Ny0yLjE5LS45Ni00LjRjLS4xOS0yLjItLjQ0LTQuNDItLjgyLTYuNjQtLjM4LTIuMjMtLjgtNC41LS43OC03Ljg5LS40Ni03Ljk2LjY5LTEzLjc0IDQtMTguMjQgMy4xMS00LjI1IDcuOTMtNy4wMSAxMS44NS04LjAyIDMuODctLjkyIDguMTQtLjggMTEuMTQtLjA5IDEuNzQuMzggMy4wMyAxLjg1IDMuMTIgMy40MiAwIC4wMi0uMTMuMTItLjQ0LjMyLS40LjI2LS45My42MS0xLjQ2IDEuMDgtLjUzLjQ2LTEuMDkuOTctMS42NyAxLjU1LTMuMjYgMy4xMy00LjE2IDYuMDMtMi41OSAxMC44MiAxLjQgNC4zNSAzLjUzIDcuMTMgNS4wNyA5LjU0IDMuNDcgNS40OSAxMC4zMiAxLjI1IDEzLjg0LTcuMjUgLjMxLS43Ni45MS0xLjg1IDEuNjktMi42MSAyLjQ4LTIuNDggNS4wMS00LjI5IDguOTktNi45NiA2LjQxLTQuMyAxMS4yMy00LjIgMTYuMDktLjI0IDMuOTQgMy4yMiA0LjYgNi40MSAxLjU3IDEwLjEzLTMuMDQgMy43MS01LjQ1IDYuNjQtOC40NyA5LjUzLTQuMzMgNC4wNS04LjIyIDYuMDctMTQuMjMgNi43Mi02LjUzLjY4LTEyLjU3Ljc5LTE4LjM2LS4zNy00LjY4LS45NS05LjU0LTMuMjktMTMuNTctNi43MS00LjAzIDMuNDEtOC4wOC03LjQxLTkuMjgtMTMuMjctLjItMS4wNi0uMy0yLS40MS0zLjE3LS4xMS0xLjA3LS4xNy0yLjE4LS40NC0zLjMzLS4yNi0xLjE1LS41NC0yLjMzLS44MS0zLjcxLS4yNy0xLjM3LS41NS0yLjgxLS44NC00LjQtLjI5LTEuNTktLjU3LTMuMTUtLjg1LTQuNzQtLjI4LTEuNTgtLjU3LTMuMTctLjg1LTQuNzYtLjE1LS44NC0uMjctMS42NS0uNDEtMi40NC0uMzMtMS44Ny0uNjQtMy45Mi0uNzYtNi4wMy0uMTEtMi4xMS0uMDQtNC4zNC41NC02LjQyLjU3LTIuMDggMS41Ni00LjA3IDIuOTUtNS43MSAxLjM5LTEuNjQgMi44Mi0yLjQ3IDQuMjctMi41NyA1LjQ5LS4zNyAxMS4wMy45NyAxNi4wMiAzLjQ0IDQuMjcgMi4xIDEwLjE1IDYuMjcgMTYuMzIgOS4zOSAyLjU2IDEuMyA0LjM1IDEuNTUgNi43Mi43NyAzLjQ5LTEuMTYgNS40NS01LjE2IDMuMzYtOC4xMy00LjYxLTYuNzQtMTAuOTMtMTEuOTQtMTguMDItMTYuMjd6TTM1LjUgMy43YzYuNzcgMCAxMi40MSAyLjI1IDE2LjM5IDYuNzIgMi41MyAyLjg4IDMuODcgNi43MiAzLjYyIDEwLjc3LS4yNSAzLjkxLTIuMTMgNy42Ny01LjMyIDEwLjgyLTEuODkgMi4zNC00LjM1IDMuOTgtNi44MiA1LjIxLTIuNDguOTktNS4xNyAxLjI5LTcuODcuNzctMi44Mi0uNTEtNS40Mi0xLjcyLTcuNTEtMy40MS0zLjM4LTIuNzItNi4xNi01Ljc0LTguNzQtOS4xMy0yLjU5LTMuNDctNC40MS03Ljc1LTUuMS0xMi4wNi0uNzgtNC45MiAxLjE4LTkuNjUgNC40NS0xMy40OCAzLjItMy43NSAzLjE5LTQuNDEgNi43OS0uMTkgMy45NiA0LjczIDUuMzUgOC43OSA1LjkzIDEzLjY3LjU4IDQuODYgLjU2IDkuNzQtLjA1IDE0LjU2LS42MyA0LjgtMS44OCA5LjU1LTIuNjkgMTQuNzgtLjIxIDEuMzQtLjQ4IDIuNi0uNzQgMy42MS0uNjkgMi42Ny0uMTkgNC4xMiAxLjY0IDQuMjguOTkuMDkgMS43Ni0uNTggMi40Mi0uNDEgNC4yLjY5IDcuMzIgMy43NiA5LjUgOC42MyAyLjIgNC42NyAxLjg5IDEwLjA5LS45MSAxNC45Mi0xLjggMy4wOS00LjMzIDUuNi02LjgzIDcuNTEtMi41OCAxLjg4LTMuNDcgMi4yNi01LjM2IDEuMjItLjk0LS41Mi0xLjgzLTEuMy0yLjUtMi4xNS0xLjU1LTEuOTktMi4zLTMuOTItMi4xMS02LjE3LjItMi4yOC43LTQuMjcgMS41Ny02LjIgMS41NS0zLjQ2IDQuMzktNi4wMyA3LjI5LTcuNDkgMi45LS41OSAxLjc3LS45Mi0uNjEtLjY1LTcuMS44My0xMi42OS00LjQtMTQuNi0xMC41MS0xLjUtNC43NC0uNjItOS4zMSAxLjIzLTEzLjM1IDIuMzctOC4xOSAxMC4xLTE0LjE5IDE4LjE0LTE1LjIzIDQuNzMtLjYxIDkuOTQtLjI2IDE0LjU4IDEuMTItMi4xOC0xLjM0LTMuNzQtMS43OS01LjE1LTIuMjd6TTI5LjE3IDUzLjQ1Yy0xLjQ0LS41NC0yLjcxLTEuMTUtMy45Mi0xLjQ0LTEuMDgtLjI1LTIuMi0uMzItMy4zMS0uMTktNC4xNy41My02LjkgNS44MS04LjIyIDYuMDktMS42MiAzLjQtMS41IDcuNDMuMzUgMTEuMDcuMjkuNTcuNjQgMS4xMSAxLjA1IDEuNTQuNDEuNDMuODYuODUgMS4yOCAxLjI2IDEuMjkgMS4yNSAyLjY4IDEuODUgNC4xMSAxLjg5IDIuMDMuMDYgNC4xMS0uOTIgNS42Mi0yLjU4IDEuNS0xLjY2IDIuNDEtMy43NyAyLjU4LTYuMDguMTEtMi43Mi0uMTUtNS40OC0uNjQtOC4xM3pNMTEuNCA5Ny4xNGMtLjU4LTQuNjMuMjMtOS42IDIuNjgtMTQuMTkgMi41LTUuMDcgNy4yMi05LjAzIDEzLjcxLTEwLjU4IDMuMTYtLjc1IDMuMTYtLjgzLTEuMjctLjA3LTEuOS43LTMuODUgMS40Ni01LjY5IDIuNDUtLjg5LjQ5LTEuNzYgMS4wNy0yLjU3IDEuNzQtMy4xIDIuNjItNC45NyA2LjIxLTUuOTYgMTAuODEtLjUxIDIuMzktLjc0IDQuOTUtLjQgNy40OC4yOCAyLjUxLjE3IDQuOTUgMS45MSA2Ljc2eiIvPjwvc3ZnPg==" alt="Weibo">
+                </button>
+                <button class="social-icon-btn" onclick="shareToSocial('Facebook', 'Check out Louis\'s Baby Clock!')">
+                    <img class="social-icon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSIjMTg3NGEyIiBkPSJNMTIgMi41YzUuMjQ2IDAgOS41IDQuMjU0IDkuNSA5LjVzLTQuMjU0IDkuNS05LjUgOS41cy05LjUtNC4yNTQtOS41LTkuNXM0LjI1NC05LjUgOS41LTkuNXoiLz48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMTUgMTBoLTJWM2gxLjVjLjI4MiAwIC41MDkuMjI3LjUwOS41MDlWMThjMCAuMjg3LS4yMjcuNTE1LS41MDkuNTE1SDEwVjEwaC0ydjJoNXY1LjVsLS43NS4xMDQtLjI1LjA0MXoiLz48L3N2Z2Q+" alt="Facebook">
+                </button>
+                <button class="social-icon-btn" onclick="shareToSocial('Twitter', 'My new alarm clock!')">
+                    <img class="social-icon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBmaWxsPSIjMTQxNzFhIiBkPSJNMTggMi45NDhjLjgtLjIxIDEuNTkuMjcgMi4wOC45Mi40OC42NS41NyAxLjQ0LjIzIDIuMTZMMTguNSAxMmMtMi45IDEuNzQtNi42IDItOS42LjRjLS41Ny0uMzQtMS4xNi0uNzctMS43NS0xLjI3LTYuMjQtNS4xNi05LjctMTQuNzctOS43LTE0Ljc3LTMuNjMgMTAtLjUgMTcgNC43IDE5LjczLS43NS0uMDctMS40NS0uNDMtMi4wNS0uOTktLjYzLS41OC0xLjAyLTEuMzktMS4wMi0yLjM0IDAtMi4wNyAxLjY3LTMuNzUgMy43NS0zLjc1aDEuMDVjMS40OSAwIDIuODctLjU5IDMuOS0xLjU1IDIuNTQtMi4zMyAzLjc1LTUuNzYgMy05LjA2ejTTMTEuOCAxOGMtLjQtLjM1LS43NC0uNzctMS4wNS0xLjI0LS4xNS0uMjItLjI4LS40NS0uNC0uNjgtLjItLjI5LS40Mi0uNTYtLjYzLS44My0uNTEtLjcxLS45OC0xLjY1LTEuMzItMi42OSAwIDAtMS4xLTIuNjcgMS45Ni0xLjYyIDEuMzcuNDggMi4yNSAxLjc4IDIuMjUgMy4zOSAwIC40MS0uMDguODEtLjIzIDEuMTgtLjA3LjE5LS4xNy4zNy0uMjkuNTQtLjY3Ljg1LTEuMzcgMS41Mi0yLjA5IDIuMDYtLjcxLjU0LTEuMzkuOTMtMi4wMiAxLjE4LS42Mi4yNS0xLjI3LjM4LTEuNTkuMzgtLjY3IDAtMS4zNC0uMTQtMi4wMi0uNDItMS4zNy0uNTYtMi40OC0xLjY4LTIuNjgtMy4xYy0uMi0xLjQzLjcxLTIuNjIgMS44NC0zLjIxLjE1LS4wNy4zLS4xMS40Ni0uMTEuNjYgMCAxLjMuMzUgMS43My45NmguMDFjMS4xMSAxLjYxIDMuMjQgMi41IDUuMzMgMS43NS4xNi0uMDMuMzItLjA4LjQ3LS4xNCAyLjYtLjczIDUuMzQtLjk2IDguMTYtLjUyLjAyLjAxLjAzLjAzLjA1LjA2em0uNzYtNy42NWMuMzUuMDkuNy0uMDMgMS4wNC0uNDEuMy0uMzguNDQtLjgyLjM1LTEuMjQtLjA5LS40Mi0uNS0uNjctMS4wMi0uNTgtLjUxLjA5LS44OS41LS44LjkyLjA5LjQyLjQ5LjY4Ljg4LjY3OjsiLz48L3N2Z2Q+">
+                </button>
+            </div>
+
+            <div class="auth-buttons" id="auth-buttons-row">
+                <button class="auth-btn bilingual-btn" id="register-btn" onclick="alert('任何人注册后可加入这个闹钟的社交群。\nAnyone who registers can join the social group for this alarm.')">
+                    <span class="en">Register</span>
+                    <span class="zh">注册</span>
+                </button>
+                <button class="auth-btn bilingual-btn" id="login-or-logout-btn" onclick="checkLoginState()">
+                    <span class="en" id="login-en">Login</span>
+                    <span class="zh" id="login-zh">登录</span>
+                </button>
+            </div>
+            
+            <p id="user-status" style="font-size: 0.9em; margin-bottom: 15px; color: #007bff; font-weight: bold;"></p>
+
+            <div class="interact-buttons">
+                <button class="interact-btn" id="like-btn" onclick="toggleLike()">
+                    <span id="like-icon">👍</span> 
+                    <span id="like-count">0</span>
+                    <span class="zh">点赞</span>
+                </button>
+                <button class="interact-btn" id="comment-btn" onclick="promptForComment()">
+                    <span class="en">Message</span> 
+                    <span class="zh">留言</span>
+                </button>
+                <button class="interact-btn" id="friends-btn" onclick="showFriends()">
+                    <span class="en">Friends</span> 
+                    <span class="zh">好友</span>
+                </button>
+            </div>
+            
+            <div id="like-info"></div>
+
+            <div id="comment-section">
+                <h4>💬 Messages | 留言</h4>
+                <div id="comments-list">
+                    </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="friends-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('friends-modal').style.display='none'">&times;</span>
+            <h3 id="modal-title">Friends List | 好友列表</h3>
+            <div id="friends-list-container">
+                </div>
+            <div id="message-friend-area" style="display:none; margin-top: 20px;">
+                <h4 id="message-target"></h4>
+                <textarea id="private-message-text" rows="3" placeholder="Enter your private message..."></textarea>
+                <button class="auth-btn" style="width: 100%; background-color: #007bff; color: white; margin-top: 10px;" onclick="sendMessage()">Send Message | 发送</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // JavaScript 逻辑
+
+        // --- 状态与数据初始化 ---
+        const USER_KEY = 'alarm_app_user_v9';
+        const LIKES_KEY = 'alarm_app_likes_v9';
+        const COMMENTS_KEY = 'alarm_app_comments_v9';
+        
+        let currentUser = JSON.parse(localStorage.getItem(USER_KEY));
+        
+        // --- 导航栏功能 ---
+        const navContent = document.getElementById('nav-content');
+        const navTitle = document.getElementById('nav-title');
+        const imageUploadInput = document.getElementById('image-upload-input');
+
+        imageUploadInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    navContent.style.backgroundImage = `url('${e.target.result}')`;
+                    alert("Image uploaded successfully! | 图片上传成功!");
+                }
+                reader.onerror = function() {
+                     alert("Failed to read image file. | 读取图片文件失败。");
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function promptForNavTitle() {
+            const title = prompt("Enter Navigation Bar Title (输入导航栏名称):");
+            if (title) {
+                navTitle.textContent = title;
+                navTitle.style.opacity = 1;
+            } else if (title === "") {
+                navTitle.textContent = "";
+                navTitle.style.opacity = 0;
+            }
+        }
+        // --- 闹钟功能 ---
+        const alarmAudio = document.getElementById('alarm-audio');
+        const alarmStatus = document.getElementById('alarm-status');
+        let alarmTime = null;
+        let alarmInterval = null;
+        let snoozeTimeout = null;
+        function promptForAlarm() {
+            const timeStr = prompt("Enter Alarm Time (HH:MM format, e.g. 07:30):");
+            if (!timeStr || !/^\d{2}:\d{2}$/.test(timeStr)) {
+                alarmStatus.textContent = "Alarm setup cancelled or format incorrect. | 闹钟设置已取消或格式不正确。";
+                return;
+            }
+            const [hour, minute] = timeStr.split(':').map(n => parseInt(n, 10));
+            if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+                alarmStatus.textContent = "Invalid time, use 24h format. | 时间无效，请使用 24 小时制。";
+                return;
+            }
+            alarmTime = { hour, minute };
+            const formattedTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+            alarmStatus.textContent = `Alarm set: ${formattedTime} | 闹钟已设定：${formattedTime}`;
+            clearInterval(alarmInterval);
+            alarmInterval = setInterval(checkAlarm, 1000);
+            alert("⚠️ Please press the 'Play | 播放' button once to enable audio for the browser. | 请手动点击一次 '播放' 按钮，以启用浏览器音频播放。");
+        }
+        function checkAlarm() {
+            const now = new Date();
+            if (alarmTime && now.getHours() === alarmTime.hour && now.getMinutes() === alarmTime.minute && now.getSeconds() === 0) {
+                playAlarm();
+                const formattedTime = `${String(alarmTime.hour).padStart(2, '0')}:${String(alarmTime.minute).padStart(2, '0')}`;
+                alarmStatus.textContent = `⏰ ALARM RINGING! Set Time: ${formattedTime} | 闹钟响了! 设定时间: ${formattedTime}`;
+                clearInterval(alarmInterval);
+            }
+        }
+        function playAlarm() {
+            clearTimeout(snoozeTimeout);
+            alarmAudio.currentTime = 0;
+            alarmAudio.play().catch(e => console.error("Playback failed (Autoplay Policy):", e));
+            alarmAudio.loop = true;
+            if (!alarmInterval && alarmTime) { alarmInterval = setInterval(checkAlarm, 1000); }
+            alarmStatus.textContent = `🎶 Alarm playing! | 闹钟正在播放!`;
+        }
+        function stopAlarm() {
+            alarmAudio.pause();
+            alarmAudio.currentTime = 0;
+            clearTimeout(snoozeTimeout);
+            if (!alarmInterval && alarmTime) { alarmInterval = setInterval(checkAlarm, 1000); }
+            
+            const statusText = alarmTime 
+                ? `Alarm stopped. Set Time: ${String(alarmTime.hour).padStart(2, '0')}:${String(alarmTime.minute).padStart(2, '0')}` 
+                : "No alarm set | 未设置闹钟";
+            alarmStatus.textContent = statusText;
+        }
+        function snoozeAlarm() {
+            alarmAudio.pause();
+            clearTimeout(snoozeTimeout);
+            const snoozeDuration = 5 * 60 * 1000;
+            const resumeTime = new Date(Date.now() + snoozeDuration).toLocaleTimeString();
+            alarmStatus.textContent = `💤 Snoozing for 5 minutes, resuming at ${resumeTime} | 休息 5 分钟，将在 ${resumeTime} 继续播放。`;
+            snoozeTimeout = setTimeout(playAlarm, snoozeDuration);
+        }
+
+        // --- 备忘录功能 ---
+        const memoList = document.getElementById('memo-list');
+        const newMemoText = document.getElementById('new-memo-text');
+        let memos = JSON.parse(localStorage.getItem('memos_v9')) || [];
+        let isListVisible = true;
+        function saveMemos() { localStorage.setItem('memos_v9', JSON.stringify(memos)); }
+        function renderMemos() {
+            memoList.innerHTML = '';
+            if (!isListVisible) return;
+            memos.forEach((memo, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'memo-item';
+                itemDiv.setAttribute('draggable', true);
+                itemDiv.dataset.index = index;
+                itemDiv.addEventListener('dragstart', handleDragStart);
+                itemDiv.addEventListener('dragover', handleDragOver);
+                itemDiv.addEventListener('drop', handleDrop);
+                itemDiv.addEventListener('dragend', handleDragEnd);
+                const tagIcon = memo.isImportant ? '⭐' : (memo.isUrgent ? '🔥' : (memo.isCompleted ? '✅' : ''));
+                const tagElement = document.createElement('span');
+                tagElement.className = 'drag-handle';
+                tagElement.textContent = '☰ ' + tagIcon;
+                itemDiv.appendChild(tagElement);
+                const textSpan = document.createElement('span');
+                textSpan.className = `memo-text ${memo.isCompleted ? 'completed' : ''}`;
+                textSpan.textContent = memo.text;
+                itemDiv.appendChild(textSpan);
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'memo-actions';
+                const tags = [
+                    { en: 'Completed', zh: '已完成', tag: 'tag-completed', key: 'isCompleted', icon: '✅' },
+                    { en: 'Very Important', zh: '非常重要', tag: 'tag-important', key: 'isImportant', icon: '⭐' },
+                    { en: 'Urgent', zh: '急需办理', tag: 'tag-urgent', key: 'isUrgent', icon: '🔥' }
+                ];
+                tags.forEach(tag => {
+                    const tagBtn = document.createElement('span');
+                    tagBtn.className = `memo-tag ${tag.tag}`;
+                    tagBtn.innerHTML = `<span style="font-weight: bold;">${tag.en}</span><br>${tag.zh}`; 
+                    tagBtn.style.opacity = memo[tag.key] ? 1 : 0.4;
+                    tagBtn.onclick = () => toggleMemoTag(index, tag.key);
+                    actionsDiv.appendChild(tagBtn);
+                });
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '🗑️';
+                deleteBtn.title = 'Delete | 删除';
+                deleteBtn.onclick = () => deleteMemo(index);
+                actionsDiv.appendChild(deleteBtn);
+                itemDiv.appendChild(actionsDiv);
+                memoList.appendChild(itemDiv);
+            });
+        }
+        function toggleMemoList() { isListVisible = !isListVisible; renderMemos(); }
+        function addMemo() {
+            const text = newMemoText.value.trim();
+            if (text) {
+                memos.push({ text: text, isCompleted: false, isImportant: false, isUrgent: false });
+                newMemoText.value = '';
+                saveMemos();
+                renderMemos();
+            }
+        }
+        function toggleMemoTag(index, key) {
+            memos[index][key] = !memos[index][key];
+            if (key === 'isCompleted' && memos[index][key]) {
+                memos[index].isImportant = false;
+                memos[index].isUrgent = false;
+            }
+            saveMemos();
+            renderMemos();
+        }
+        function deleteMemo(index) { memos.splice(index, 1); saveMemos(); renderMemos(); }
+        let dragSrcEl = null;
+        function handleDragStart(e) { dragSrcEl = this; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/html', this.innerHTML); this.style.opacity = '0.4'; }
+        function handleDragOver(e) { if (e.preventDefault) { e.preventDefault(); } e.dataTransfer.dropEffect = 'move'; return false; }
+        function handleDrop(e) {
+            if (e.stopPropagation) { e.stopPropagation(); }
+            if (dragSrcEl !== this) {
+                const dragIndex = parseInt(dragSrcEl.dataset.index);
+                const dropIndex = parseInt(this.dataset.index);
+                const draggedMemo = memos.splice(dragIndex, 1)[0];
+                memos.splice(dropIndex, 0, draggedMemo);
+                saveMemos();
+                renderMemos();
+            }
+            return false;
+        }
+        function handleDragEnd(e) { this.style.opacity = '1'; }
+
+        // --- 激励名言功能 ---
+        const quoteInput = document.getElementById('quote-input');
+        const quoteSelect = document.getElementById('quote-select');
+        const accumulatedQuotesDiv = document.getElementById('accumulated-quotes');
+        let accumulatedQuotes = JSON.parse(localStorage.getItem('accumulatedQuotes_v9')) || [];
+        const quoteWarehouse = [
+            "The only way to do great work is to love what you do. - Steve Jobs",
+            "In three words I can sum up everything I've learned about life: it goes on. - Robert Frost",
+            "The future belongs to those who believe in the beauty of their dreams. - Eleanor Roosevelt",
+            "Strive not to be a success, but rather to be of value. - Albert Einstein",
+            "The best way to predict the future is to create it. - Peter Drucker",
+            "You miss 100% of the shots you don't take. - Wayne Gretzky",
+            "Don't count the days, make the days count. - Muhammad Ali",
+            "The journey of a thousand miles begins with a single step. - Lao Tzu",
+            "Success is not final, failure is not fatal: it is the courage to continue that counts. - Winston Churchill",
+            "Change your thoughts and you change your world. - Norman Vincent Peale",
+        ];
+        while (quoteWarehouse.length < 300) {
+            quoteWarehouse.push(`Motivation Quote ${quoteWarehouse.length + 1}: Never give up on a dream just because of the time it will take to accomplish it. The time will pass anyway.`);
+        }
+        function renderAccumulatedQuotes() {
+            accumulatedQuotesDiv.innerHTML = '';
+            accumulatedQuotes.forEach((quote, index) => {
+                const p = document.createElement('p');
+                p.className = 'quote-item';
+                p.textContent = `${index + 1}. ${quote}`;
+                accumulatedQuotesDiv.appendChild(p);
+            });
+            accumulatedQuotesDiv.scrollTop = accumulatedQuotesDiv.scrollHeight;
+        }
+        function saveAccumulatedQuotes() {
+            localStorage.setItem('accumulatedQuotes_v9', JSON.stringify(accumulatedQuotes));
+        }
+        function addUserQuote(quote) {
+            const trimmedQuote = quote.trim();
+            if (trimmedQuote && !accumulatedQuotes.includes(trimmedQuote)) {
+                accumulatedQuotes.push(trimmedQuote);
+                quoteInput.value = ''; 
+                saveAccumulatedQuotes();
+                renderAccumulatedQuotes();
+            }
+        }
+        function addSelectedQuote(quote) {
+            if (quote && !accumulatedQuotes.includes(quote)) {
+                accumulatedQuotes.push(quote);
+                quoteSelect.value = ''; 
+                saveAccumulatedQuotes();
+                renderAccumulatedQuotes();
+            }
+        }
+        function populateQuoteWarehouse() {
+            quoteWarehouse.forEach((quote, index) => {
+                const option = document.createElement('option');
+                option.value = quote;
+                option.textContent = `Quote ${index + 1}: ${quote.substring(0, 50)}...`;
+                quoteSelect.appendChild(option);
+            });
+        }
+        function downloadApp() {
+            alert("This is a Web App. | 这是一个网页应用。\n\nTo save 'Louis's Baby Clock' to your home screen: | 要将 'Louis's Baby Clock' 添加到手机桌面：\n1. Find 'Add to Home Screen' in your browser menu. | 在浏览器菜单中查找 '添加到主屏幕'。\n2. Tap it to create an icon that launches the alarm! | 点击即可创建图标并启用闹钟！");
+        }
+
+        // --- 社交互动逻辑 ---
+        const pageTitle = "Louis's Baby Clock - My New Alarm!";
+        const pageUrl = window.location.href; 
+        const userStatusDisplay = document.getElementById('user-status');
+        
+        // 1. 模拟登录/退出
+        function updateLoginUI() {
+            const loginBtn = document.getElementById('login-or-logout-btn');
+            const loginEn = document.getElementById('login-en');
+            const loginZh = document.getElementById('login-zh');
+            
+            if (currentUser && currentUser.isLoggedIn) {
+                loginEn.textContent = 'Logout';
+                loginZh.textContent = '退出';
+                loginBtn.style.backgroundColor = '#dc3545'; 
+                userStatusDisplay.textContent = `Welcome, ${currentUser.username} | 欢迎，${currentUser.username}`;
+            } else {
+                loginEn.textContent = 'Login';
+                loginZh.textContent = '登录';
+                loginBtn.style.backgroundColor = '#28a745';
+                userStatusDisplay.textContent = 'Logged out | 已退出';
+            }
+        }
+
+        function simulateLogin() {
+            const username = prompt("Enter your username (输入用户名):");
+            if (username && username.trim()) {
+                currentUser = { 
+                    username: username.trim(), 
+                    isLoggedIn: true 
+                };
+                localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+                updateLoginUI();
+                renderLikes(); 
+                alert(`Login successful! Welcome, ${username.trim()}. | 登录成功！欢迎，${username.trim()}。`);
+            } else {
+                alert("Username cannot be empty. | 用户名不能为空。");
+            }
+        }
+
+        function simulateLogout() {
+            if (currentUser) {
+                currentUser.isLoggedIn = false;
+                localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+                updateLoginUI();
+                renderLikes(); 
+                alert("You have been logged out. | 您已退出。");
+            }
+        }
+
+        function checkLoginState() {
+            if (currentUser && currentUser.isLoggedIn) {
+                simulateLogout();
+            } else {
+                simulateLogin();
+            }
+        }
+
+        // 2. 社交转发 (模拟跳转)
+        function shareToSocial(platform, text) {
+            let shareUrl = '';
+            const encodedText = encodeURIComponent(text + ' ' + pageUrl);
+
+            switch (platform) {
+                case 'WeChat':
+                    alert('请截图或复制链接到微信分享！\n(Please take a screenshot or copy the link to share on WeChat.)');
+                    return; 
+                case 'Weibo':
+                    shareUrl = `http://service.weibo.com/share/share.php?url=${encodeURIComponent(pageUrl)}&title=${encodedText}`;
+                    break;
+                case 'Facebook':
+                    shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}&quote=${encodedText}`;
+                    break;
+                case 'Twitter':
+                    shareUrl = `https://twitter.com/intent/tweet?text=${encodedText}`;
+                    break;
+                default:
+                    return;
+            }
+            window.open(shareUrl, '_blank');
+        }
+
+        // 3. 点赞逻辑
+        function getLikes() {
+            const defaultLikes = { count: 0, users: [] };
+            return JSON.parse(localStorage.getItem(LIKES_KEY)) || defaultLikes;
+        }
+
+        function saveLikes(likes) {
+            localStorage.setItem(LIKES_KEY, JSON.stringify(likes));
+        }
+
+        function renderLikes() {
+            const likes = getLikes();
+            const likeCountElement = document.getElementById('like-count');
+            const likeInfoElement = document.getElementById('like-info');
+            const likeIconElement = document.getElementById('like-icon');
+            
+            likeCountElement.textContent = likes.count;
+            
+            const username = currentUser?.username;
+            const userHasLiked = username && likes.users.includes(username);
+            
+            likeIconElement.textContent = userHasLiked ? '💖' : '👍';
+
+            likeInfoElement.innerHTML = `Total ${likes.count} likes. | 共有 ${likes.count} 个赞。`;
+
+            if (likes.users.length > 0) {
+                const userList = likes.users
+                    .map(user => `<span class="like-user">${user}</span>`)
+                    .join(', ');
+                likeInfoElement.innerHTML += `<br>Liked by: ${userList}`;
+            }
+        }
+
+        function toggleLike() {
+            const likes = getLikes();
+            const username = currentUser?.username;
+            const isLiked = username && likes.users.includes(username);
+
+            if (currentUser && currentUser.isLoggedIn) {
+                if (isLiked) {
+                    likes.count--;
+                    likes.users = likes.users.filter(u => u !== username);
+                    alert("取消点赞成功！");
+                } else {
+                    likes.count++;
+                    likes.users.push(username);
+                    alert("点赞成功！");
+                }
+            } else {
+                // 未登录用户也可以点赞，但不能记录用户名
+                if (isLiked) {
+                    // 如果未登录状态下用户浏览器记录了点赞状态，允许取消
+                    likes.count--;
+                    likes.users = likes.users.filter(u => u !== username); // 理论上此时username是null，但保险起见清理
+                    alert("取消点赞成功！");
+                } else {
+                    likes.count++;
+                    alert("点赞成功！登录后可记录您的用户名。");
+                }
+            }
+            
+            likes.count = Math.max(0, likes.count);
+            // 确保点赞用户列表是唯一的
+            likes.users = Array.from(new Set(likes.users)).filter(u => u);
+            saveLikes(likes);
+            renderLikes();
+        }
+
+        // 4. 留言逻辑
+        function getComments() {
+            return JSON.parse(localStorage.getItem(COMMENTS_KEY)) || [];
+        }
+
+        function saveComments(comments) {
+            localStorage.setItem(COMMENTS_KEY, JSON.stringify(comments));
+        }
+
+        function renderComments() {
+            const comments = getComments();
+            const commentsList = document.getElementById('comments-list');
+            commentsList.innerHTML = '';
+
+            if (comments.length === 0) {
+                commentsList.innerHTML = '<p style="text-align: center; color: #999;">No comments yet. Be the first! | 暂无留言，快来抢沙发吧！</p>';
+                return;
+            }
+
+            // 按时间倒序显示
+            [...comments].reverse().forEach(comment => { 
+                const div = document.createElement('div');
+                div.className = 'comment-item';
+                div.innerHTML = `
+                    <p>
+                        <span class="comment-user">${comment.user}</span>: ${comment.text}
+                    </p>
+                    <p class="comment-meta">${comment.timestamp}</p>
+                `;
+                commentsList.appendChild(div);
+            });
+        }
+
+        function promptForComment() {
+            if (!currentUser || !currentUser.isLoggedIn) {
+                alert("Please login to leave a message. | 请登录后留言。");
+                return;
+            }
+            
+            const commentText = prompt(`Leave a message as ${currentUser.username} (留言):`);
+            if (commentText && commentText.trim()) {
+                addComment(commentText.trim());
+            }
+        }
+
+        function addComment(text) {
+            const comments = getComments();
+            const newComment = {
+                user: currentUser.username,
+                text: text,
+                timestamp: new Date().toLocaleString()
+            };
+            comments.push(newComment);
+            saveComments(comments);
+            renderComments();
+            updateFriendsList(currentUser.username); // 留言后自动添加为好友（如果还没在列表）
+        }
+
+        // 5. 好友和私聊逻辑 (仅模拟)
+        function showFriends() {
+            const modal = document.getElementById('friends-modal');
+            const listContainer = document.getElementById('friends-list-container');
+            const messageArea = document.getElementById('message-friend-area');
+            
+            messageArea.style.display = 'none';
+            listContainer.innerHTML = '';
+
+            // 从留言中提取所有留言过的用户作为“好友”
+            const commenters = Array.from(new Set(getComments().map(c => c.user)));
+            
+            if (commenters.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; color: #999;">No friends yet. Leave a comment to make friends! | 暂无好友，留言可添加好友！</p>';
+            } else {
+                commenters.forEach(friend => {
+                    const div = document.createElement('div');
+                    div.className = 'friend-item';
+                    div.textContent = friend + (currentUser && currentUser.username === friend ? ' (You | 您)' : '');
+                    div.onclick = () => messageFriend(friend);
+                    listContainer.appendChild(div);
+                });
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function messageFriend(friendName) {
+            if (!currentUser || !currentUser.isLoggedIn) {
+                alert("Please login to message friends. | 请登录后留言给好友。");
+                return;
+            }
+            if (friendName === currentUser.username) {
+                alert("You cannot message yourself! | 不能给自己留言！");
+                return;
+            }
+            
+            const messageArea = document.getElementById('message-friend-area');
+            const messageTarget = document.getElementById('message-target');
+            const privateMessageText = document.getElementById('private-message-text');
+
+            messageTarget.textContent = `Message to ${friendName}:`;
+            messageArea.dataset.target = friendName;
+            privateMessageText.value = ''; 
+            messageArea.style.display = 'block';
+        }
+
+        function sendMessage() {
+            const messageArea = document.getElementById('message-friend-area');
+            const friendName = messageArea.dataset.target;
+            const messageText = document.getElementById('private-message-text').value.trim();
+
+            if (messageText) {
+                alert(`[SIMULATED] Message sent to ${friendName} from ${currentUser.username}: "${messageText}"\n(This is a local simulation. The message is NOT saved or sent.)`);
+                document.getElementById('friends-modal').style.display = 'none';
+            } else {
+                // **已修复：添加了缺少的双引号**
+                alert("Message cannot be empty. | 留言不能为空。");
+            }
+        }
+
+        // 页面初始化时调用，确保留言者自动添加到好友列表（虽然在这个版本中，showFriends已经从comments中获取了，这个函数可以简化）
+        function updateFriendsList(newFriend) {
+            // 在此版本中，friends list logic is implicitly handled by getComments() in showFriends, 
+            // so this function is simplified to prevent explicit state management confusion.
+            // But we keep it to call inside addComment for clarity.
+        }
+
+        // --- 页面初始化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderMemos();
+            populateQuoteWarehouse();
+            renderAccumulatedQuotes();
+
+            updateLoginUI();
+            renderLikes();
+            renderComments();
+        });
+        
+        window.onclick = function(event) {
+            const modal = document.getElementById('friends-modal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+    </script>
+
+</body>
+</html>
